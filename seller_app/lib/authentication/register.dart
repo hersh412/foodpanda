@@ -37,7 +37,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> formValidation() async {
     if (imageXFile == null) {
       showDialog(context: context , builder: (c) {
-        return const ErrorDialog("Please select an image.");
+        return const ErrorDialog(message: "Please select an image.",);
       }
       );
     }
