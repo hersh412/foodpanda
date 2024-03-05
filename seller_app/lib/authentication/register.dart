@@ -14,6 +14,8 @@ import 'package:seller_app/widgets/loading_dialog.dart';
 import 'package:firebase_storage/firebase_storage.dart' as f_storage;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../global/global.dart';
+
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
@@ -156,7 +158,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   void authenticateSellerAndSignUp() async {
     User? currentUser;
-    final FirebaseAuth firebaseAuth = FirebaseAuth.instance;
     await firebaseAuth.createUserWithEmailAndPassword(
         email: emailController.text.trim(),
         password: passwordController.text.trim()).then((auth) {
@@ -192,11 +193,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     // save to device storage
-    SharedPreferences? sharedPreferences = await SharedPreferences.getInstance();
-    await sharedPreferences.setString("uid", currentUser.uid);
-    await sharedPreferences.setString("name", nameController.text.trim());
-    await sharedPreferences.setString("photoUrl", sellerImageUrl);
-    await sharedPreferences.setString("email", currentUser.email.toString());
+    sharedPreferences = await SharedPreferences.getInstance();
+    await sharedPreferences!.setString("uid", currentUser.uid);
+    await sharedPreferences!.setString("name", nameController.text.trim());
+    await sharedPreferences!.setString("photoUrl", sellerImageUrl);
+    await sharedPreferences!.setString("email", currentUser.email.toString());
 
   }
 

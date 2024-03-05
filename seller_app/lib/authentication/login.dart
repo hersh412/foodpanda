@@ -1,6 +1,15 @@
+import 'dart:math';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:seller_app/global/global.dart';
+import 'package:seller_app/mainScreens/home_screen.dart';
+import 'package:seller_app/widgets/error_dialog.dart';
+import 'package:seller_app/widgets/loading_dialog.dart';
 
 import '../widgets/custom_text_field.dart';
+import 'auth_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -10,10 +19,91 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
+
+  formValidation() {
+    if (emailController.text.isNotEmpty && passwordController.text.isNotEmpty) {
+      loginNow();
+    } else {
+      showDialog(
+          context: context,
+          builder: (c) {
+            return const ErrorDialog(
+              message: "Please use an email & password to login.",
+            );
+          });
+    }
+  }
+
+  loginNow() async {
+    showDialog(
+        context: context,
+        builder: (c) {
+          return const LoadingDialog(
+            message: "Checking credentials...",
+          );
+        });
+
+    User? currentUser;
+    await firebaseAuth
+        .signInWithEmailAndPassword(
+            email: emailController.text.trim(),
+            password: passwordController.text.trim())
+        .then((auth) {
+      currentUser = auth.user!;
+    }).catchError((error) {
+      Navigator.pop(context);
+      showDialog(
+          context: context,
+          builder: (c) {
+            return ErrorDialog(
+              message: error.message.toString(),
+            );
+          });
+    });
+    if (currentUser != null) {
+      readDataAndSetDataLocally(currentUser!);
+    }
+  }
+
+  Future readDataAndSetDataLocally(User currentUser) async {
+    var docs = await FirebaseFirestore.instance.collectionGroup("sellers").get();
+    for (var i in docs.docs) {
+
+    }
+    await FirebaseFirestore.instance
+        .collection("sellers")
+        .doc(currentUser.uid)
+        .get()
+        .then((snapshot) async {
+      if (snapshot.exists) {
+        await sharedPreferences!.setString("uid", currentUser.uid);
+        await sharedPreferences!
+            .setString("email", snapshot.data()!["sellerEmail"]);
+        await sharedPreferences!
+            .setString("name", snapshot.data()!["sellerName"]);
+        await sharedPreferences!
+            .setString("photoUrl", snapshot.data()!["sellerUrl"]);
+        if (!mounted) return;
+        Navigator.of(context).pop();
+        Navigator.push(
+            context, MaterialPageRoute(builder: (c) => const HomeScreen()));
+      } else {
+        firebaseAuth.signOut();
+        Navigator.push(
+            context, MaterialPageRoute(builder: (c) => const AuthScreen()));
+        showDialog(
+            context: context,
+            builder: (c) {
+              return const ErrorDialog(
+                message: "No Record Found",
+              );
+            });
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,9 +114,11 @@ class _LoginScreenState extends State<LoginScreen> {
           Container(
             alignment: Alignment.bottomCenter,
             child: Padding(
-              padding: EdgeInsets.all(15),
-              child: Image.asset("images/seller.png",
-              height: 270,),
+              padding: const EdgeInsets.all(15),
+              child: Image.asset(
+                "images/seller.png",
+                height: 270,
+              ),
             ),
           ),
           Form(
@@ -54,9 +146,11 @@ class _LoginScreenState extends State<LoginScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.cyan,
-                padding: EdgeInsets.symmetric(horizontal: 40, vertical: 10)
-            ),
-            onPressed: () => print("clicked"),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 40, vertical: 10)),
+            onPressed: () {
+              formValidation();
+            },
             child: const Text(
               "Login",
               style: TextStyle(
